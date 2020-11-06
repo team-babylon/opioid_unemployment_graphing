@@ -1,0 +1,119 @@
+---
+title: "ACHC_modeling"
+author: "Team Babylon"
+date: "11/5/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+```
+
+
+
+```{r}
+library(readxl)
+
+# First run
+
+# Reading in county unemployment
+cu = read_xlsx("data/county_unemployment_2008.xlsx") %>%
+  filter(state_fips_code != "PR") %>%
+  mutate(county_fips_code = total_fips_code) %>%
+  select(county_fips_code, unemployment_rate)
+
+# Reading in county perscription
+cp = read_xlsx("data/perscription_rate_2008.xlsx") %>%
+  mutate(location_name = county) %>%
+  select(county_fips_code, perscription_rate) %>%
+  mutate(perscription_rate = as.numeric(perscription_rate))
+
+cu %>%
+  mutate(unemployment_rate = as.numeric(unemployment_rate))
+cp %>%
+  mutate(perscription_rate = as.numeric(perscription_rate))
+
+x = merge(cu, cp, by = "county_fips_code")
+
+ggplot(x, aes(x = perscription_rate, y = unemployment_rate)) + geom_point() + geom_smooth(method = "lm", color = "black")
+```
+
+
+
+
+
+```{r}
+# Run 2
+
+# Create data set
+p2009 = read_xlsx("data/2009-Perscription-Rate.xlsx") %>%
+  select(county_fips_code, perscription_rate) %>%
+  mutate(perscription_rate = as.numeric(perscription_rate)) %>%
+  na.omit()
+p2007 = read_xlsx("data/2007-Perscription-Rate.xlsx") %>%
+  select(county_fips_code, perscription_rate) %>%
+  mutate(perscription_rate = as.numeric(perscription_rate)) %>%
+  na.omit()
+
+u2009 = read_xlsx("data/laucnty09.xlsx") %>%
+  mutate(county_fips_code = total_fips_code) %>%
+  select(county_fips_code, unemployment_rate) %>%
+  na.omit()
+u2007 = read_xlsx("data/laucnty07.xlsx") %>%
+  mutate(county_fips_code = total_fips_code) %>%
+  select(county_fips_code, unemployment_rate) %>%
+  na.omit()
+
+o9 = merge(p2009, u2009, by = "county_fips_code")
+o7 = merge(p2007, u2007, by = "county_fips_code")
+o8 = x
+
+y = rbind(o7, o8, o9)
+
+# Plot
+ggplot(y, aes(x = sqrt(perscription_rate), y = log(unemployment_rate))) + geom_point() + geom_smooth(method = "lm")
+
+# Check assumptions
+hist(sqrt(y$perscription_rate))
+hist(log(y$unemployment_rate))
+```
+
+
+```{r}
+### Final Run ###
+
+p2018 = read_xlsx("data/2018-perscription-rate.xlsx") %>%
+  select(county_fips_code, perscription_rate) %>%
+  mutate(perscription_rate = as.numeric(perscription_rate)) %>%
+  na.omit()
+
+u2018 = read_xlsx("data/laucnty18.xlsx") %>%
+  mutate(county_fips_code = total_fips_code) %>%
+  select(county_fips_code, unemployment_rate) %>%
+  na.omit()
+
+o18 = merge(p2018, u2018, by = "county_fips_code")
+
+plot = ggplot(o18, aes(x = sqrt(perscription_rate), y = log(unemployment_rate))) + geom_point(color = "lightgray") + geom_smooth(method = "lm", color = "black", se = F) + labs(x = "sqrt(Prescription Rate)", y = "log(Unemployment Rate)") + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "gray"))
+
+# Saving plot
+ggsave("uvp_plot.jpg", plot = plot, dpi = 500, width = 8, height = 4)
+
+o18 %>%
+  arrange(desc(unemployment_rate))
+```
+
+
+
+
+
+
+
+
+
+
+
+
